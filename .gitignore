@@ -1,0 +1,11 @@
+# Ignore developer-docs directory
+developer-docs/
+
+# Ignore extensions directory
+extensions/
+
+# Ignore node_modules directory inside any folder
+**/node_modules/
+
+# Misc
+.DS_Store
