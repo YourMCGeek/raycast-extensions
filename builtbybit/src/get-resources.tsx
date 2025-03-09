@@ -11,7 +11,6 @@ import {
 } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 
-
 const preferences = getPreferenceValues<PreferenceValues>();
 
 export default function Command(props: LaunchProps<{ arguments: Arguments.GetResources }>) {

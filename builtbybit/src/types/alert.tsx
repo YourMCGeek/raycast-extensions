@@ -30,7 +30,6 @@ export const ContentTypeURLMap: { [key in ContentType]: string } = {
   [ContentType.TICKET]: "https://builtbybit.com/tickets/messages",
   [ContentType.THREAD]: "https://builtbybit.com/posts",
   [ContentType.REPORT]: "https://builtbybit.com/reports/comment",
-
 };
 
 export const ContentTypeNames: { [key in ContentType]: string } = {
