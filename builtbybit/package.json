@@ -119,9 +119,9 @@
       ]
     },
     {
-      "name": "alerts",
-      "title": "Alerts",
-      "description": "Monitor Alerts from BuiltByBit",
+      "name": "get-notifications",
+      "title": "Get Notifications",
+      "description": "Fetch notifications from BuiltByBit",
       "mode": "menu-bar",
       "interval": "1m"
     }

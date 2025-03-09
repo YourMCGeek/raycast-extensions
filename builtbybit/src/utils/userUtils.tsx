@@ -1,6 +1,6 @@
-import axios from "axios";
 import { Member } from "../types/member";
-import { API_KEY } from "./constants";
+import apiClient, { CACHE_NAMESPACE, CACHE_TTL, CacheWithTTL } from "./constants";
+import { showFailureToast } from "@raycast/utils";
 
 /**
  * Utility class to interact with the BuiltByBit API.
@@ -8,90 +8,101 @@ import { API_KEY } from "./constants";
  * This class provides methods to retrieve user data via different identifiers
  * such as username, userID, or discordID. It uses Raycast preferences to obtain the API key.
  */
-export class UserUtils {
-  /**
-   * Fetches user data from the BuiltByBit API based on the identifier and method.
-   *
-   * @param identifier - The unique value used for lookup (username, userID, or discordID).
-   * @param method - The method to use for lookup. Accepted values: "username", "userID", "discordID".
-   * @returns A promise that resolves to a Member object.
-   *
-   * @throws Error if the method is invalid, no user is found, or the API request fails.
-   */
-  private static async fetchUserData(identifier: string, method: "username" | "userID" | "discordID"): Promise<Member> {
-    let url: string;
 
+const userCache = new CacheWithTTL({
+  namespace: CACHE_NAMESPACE.USERS,
+});
+
+type FetchMethod = "username" | "userID" | "discordID";
+
+export class UserUtils {
+  private static async fetchUserData(
+    identifier: string,
+    method: FetchMethod,
+  ): Promise<{ result: string; data: Member }> {
+    const cacheKey = `${method}-${identifier}`;
+
+    const cachedData = await userCache.get<{ result: string; data: Member }>(cacheKey, CACHE_TTL.LONG);
+    if (cachedData) {
+      console.log("Using cached data:", cachedData);
+      return cachedData;
+    }
+
+    let endpoint = "";
     switch (method) {
       case "username":
-        url = `https://api.builtbybit.com/v1/members/usernames/${identifier}`;
+        endpoint = `/members/usernames/${identifier}`;
         break;
       case "userID":
-        url = `https://api.builtbybit.com/v1/members/${identifier}`;
+        endpoint = `/members/${identifier}`;
         break;
       case "discordID":
-        url = `https://api.builtbybit.com/v1/members/discords/${identifier}`;
+        endpoint = `/members/discords/${identifier}`;
         break;
-      default:
-        throw new Error("Invalid method");
+    }
+    const response = await apiClient.get(endpoint);
+
+    if (!response.data || !response.data.data) {
+      console.error("Invalid API response structure:", response.data);
+      await showFailureToast("Invalid API response", { title: "Error", message: response.data });
+      throw new Error("Invalid API response structure");
     }
 
+    const memberData = response.data;
+
+    if (!memberData.data || !memberData.data.username) {
+      console.error("Invalid member data:", memberData);
+      await showFailureToast("User not found", { title: "User not found" });
+      throw new Error("No user found");
+    }
+
+    await userCache.set(cacheKey, memberData);
+    return memberData;
+  }
+
+  public static async idToUsername(userId: number | string): Promise<string> {
     try {
-      const response = await axios.get(url, {
-        headers: { Authorization: `Private ${API_KEY}`, "Content-Type": "application/json" },
-      });
+      const memberData = await this.fetchUserData(userId.toString(), "userID");
 
-      console.log("API response for user data:", response.data); // Log the API response
-
-      if (response.data && response.data.data) {
-        return response.data.data;
-      } else {
-        throw new Error("No user found");
+      if (!memberData || !memberData.data) {
+        console.error("Member data is null or undefined");
+        return "Unknown User";
       }
+
+      if (typeof memberData.data.username !== "string") {
+        console.error("Username is not a string:", memberData.data.username);
+        return "Unknown User";
+      }
+
+      return memberData.data.username;
     } catch (error) {
-      console.error("Error fetching user data:", error);
-      throw new Error("Failed to fetch user data");
+      console.error("Error in idToUsername:", error);
+      return "Unknown User";
     }
   }
 
-  /**
-   * Retrieves the username for a given user based on the UserID lookup.
-   *
-   * @param userId - The userId to lookup.
-   * @returns A promise that resolves to the username. Returns "Unknown Username" if not found.
-   */
-  public static async IDToUsername(userId: string): Promise<string> {
-    const member = await UserUtils.fetchUserData(userId, "userID");
-    return member.username ? member.username : "Unknown Username"; // Use optional chaining
+  public static async usernameToId(username: string): Promise<string> {
+    const memberData = await this.fetchUserData(username, "username");
+    return memberData.data.member_id.toString();
   }
 
-  /**
-   * Retrieves the user ID for a given username.
-   *
-   * @param username - The username to lookup.
-   * @returns A promise that resolves to the user ID (as a string). Returns "Unknown ID" if not found.
-   */
-  public static async usernameToID(username: string): Promise<string> {
-    const member = await UserUtils.fetchUserData(username, "username");
-    return member?.member_id ? member.member_id.toString() : "Unknown ID"; // Use optional chaining
+  public static async getMemberById(userId: number | string): Promise<Member> {
+    const memberData = await this.fetchUserData(userId.toString(), "userID");
+    return memberData.data;
   }
 
-  /**
-   * Retrieves member information based on a user ID.
-   *
-   * @param userID - The user ID to lookup.
-   * @returns A promise that resolves to a Member object.
-   */
-  public static async userIDToMember(userID: string): Promise<Member> {
-    return await UserUtils.fetchUserData(userID, "userID");
+  public static async getMemberByDiscordId(discordId: number | string): Promise<Member> {
+    const memberData = await this.fetchUserData(discordId.toString(), "discordID");
+    return memberData.data;
   }
 
-  /**
-   * Retrieves member information based on a Discord ID.
-   *
-   * @param discordID - The Discord ID to lookup.
-   * @returns A promise that resolves to a Member object.
-   */
-  public static async discordIDToMember(discordID: string): Promise<Member> {
-    return await UserUtils.fetchUserData(discordID, "discordID");
+  public static clearCache(): void {
+    userCache.clear();
+  }
+
+  public static async refreshMemberData(identifier: string, method: FetchMethod): Promise<Member> {
+    await userCache.remove(`${method}-${identifier}`);
+    const memberData = await this.fetchUserData(identifier, method);
+    return memberData.data;
   }
 }

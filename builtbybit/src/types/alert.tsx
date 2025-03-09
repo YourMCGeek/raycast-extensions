@@ -5,21 +5,37 @@ export interface Alert {
   alert_type: string;
   alert_date: number;
   username?: string;
+  read?: boolean;
+}
+
+export interface AlertResponse {
+  data: Alert[];
 }
 
 export enum AlertType {
   REACTION = "reaction",
   REPLY = "insert",
+  TICKET_MOVED = "nf_tickets_moved",
 }
 
 export enum ContentType {
   CONVERSATION = "conversation_message",
   TICKET = "nf_tickets_message",
   THREAD = "post",
+  REPORT = "report_comment",
 }
 
 export const ContentTypeURLMap: { [key in ContentType]: string } = {
   [ContentType.CONVERSATION]: "https://builtbybit.com/conversations/messages",
   [ContentType.TICKET]: "https://builtbybit.com/tickets/messages",
   [ContentType.THREAD]: "https://builtbybit.com/posts",
+  [ContentType.REPORT]: "https://builtbybit.com/reports/comment",
+
+};
+
+export const ContentTypeNames: { [key in ContentType]: string } = {
+  [ContentType.CONVERSATION]: "conversation",
+  [ContentType.TICKET]: "ticket",
+  [ContentType.THREAD]: "thread",
+  [ContentType.REPORT]: "report",
 };

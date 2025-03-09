@@ -4,7 +4,6 @@ import { useAlerts } from "./hooks/useAlerts";
 import axios from "axios";
 import { showFailureToast } from "@raycast/utils";
 import { formatRelativeDate } from "./utils/dateUtils";
-import { ALERTS_CACHE_KEY, API_KEY } from "./utils/constants";
 import { AlertType, ContentType, ContentTypeURLMap } from "./types/alert";
 
 const MenuCommand: React.FC = () => {
@@ -25,6 +24,7 @@ const MenuCommand: React.FC = () => {
 
   // Memoize mark all as read handler
   const markAllAsRead = useCallback(() => {
+    
     axios
       .patch("https://api.builtbybit.com/v1/alerts", {
         headers: { Authorization: `Private ${API_KEY}` },

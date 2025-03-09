@@ -1,5 +1,6 @@
 import { Action, ActionPanel, Detail, getPreferenceValues, Icon, LaunchProps, PreferenceValues } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
+import { API_BASE_URL } from "./utils/constants";
 
 const preferences = getPreferenceValues<PreferenceValues>();
 
@@ -12,13 +13,13 @@ export default function Command(props: LaunchProps<{ arguments: Arguments.Search
 
     switch (method) {
       case "username":
-        baseUrl = `https://api.builtbybit.com/v1/members/usernames/${search}`;
+        baseUrl = `${API_BASE_URL}/members/usernames/${search}`;
         break;
       case "userID":
-        baseUrl = `https://api.builtbybit.com/v1/members/${search}`;
+        baseUrl = `${API_BASE_URL}/members/${search}`;
         break;
       case "discordID":
-        baseUrl = `https://api.builtbybit.com/v1/members/discords/${search}`;
+        baseUrl = `${API_BASE_URL}/members/discords/${search}`;
         break;
       default:
         throw new Error("Invalid search method");
