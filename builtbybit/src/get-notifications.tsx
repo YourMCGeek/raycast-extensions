@@ -3,7 +3,7 @@ import { Alert, AlertType, ContentType, ContentTypeNames, ContentTypeURLMap } fr
 import { AlertsService } from "./services/alertsService";
 import { showFailureToast, useCachedPromise } from "@raycast/utils";
 import { UserUtils } from "./utils/userUtils";
-import { Color, Icon, MenuBarExtra, open, showToast, Toast } from "@raycast/api";
+import { Clipboard, Color, Icon, MenuBarExtra, open, showToast, Toast } from "@raycast/api";
 import { formatRelativeDate } from "./utils/dateUtils";
 
 export default function Command() {
@@ -14,7 +14,7 @@ export default function Command() {
     isLoading,
     revalidate,
   } = useCachedPromise(() => AlertsService.fetchAlerts(), [], {
-    keepPreviousData: true,
+    keepPreviousData: false,
     initialData: [],
   });
 
@@ -38,6 +38,8 @@ export default function Command() {
               if (alert.caused_member_id !== 0) {
                 const username = await UserUtils.idToUsername(alert.caused_member_id);
                 enriched[i + index] = { ...alert, username };
+              } else {
+                enriched[i + index] = { ...alert, username: "Guest User" };
               }
             } catch (error) {
               console.error(`Error fetching username for ID ${alert.caused_member_id}:`, error);
@@ -55,6 +57,7 @@ export default function Command() {
       const success = await AlertsService.markAllAsRead();
       if (success) {
         await showToast(Toast.Style.Success, "Marked all notifications as read");
+        await UserUtils.clearCache();
         revalidate();
       } else {
         await showFailureToast("Failed to mark notifications as read", {
@@ -77,13 +80,24 @@ export default function Command() {
         return `${username} replied to your ${contentTypeName}`;
       case AlertType.TICKET_MOVED:
         return `Your ticket has been moved`;
+      case AlertType.MENTION:
+        return `${username} mentioned you in a ${contentTypeName}`;
       default:
         return `New notification from ${username}`;
     }
   };
 
+  const handleDebug = async () => {
+    console.log("Debug", alertResponse);
+    await Clipboard.copy(JSON.stringify(alertResponse, null, 2));
+    await showToast(Toast.Style.Success, "Debug information copied to clipboard. Please send this to Geek");
+  };
+
   const getContentUrl = (alert: Alert) => {
     const baseUrl = ContentTypeURLMap[alert.content_type as ContentType];
+    if (alert.content_type === ContentType.WIKI) {
+      return `${baseUrl}`;
+    }
     return `${baseUrl}/${alert.content_id}`;
   };
 
@@ -105,12 +119,6 @@ export default function Command() {
       isLoading={isLoading}
     >
       <MenuBarExtra.Section title={unreadCount > 0 ? "Notifications" : "No Unread Notifications"}>
-        <MenuBarExtra.Item
-          title="View All Alerts"
-          shortcut={{ modifiers: ["cmd", "shift"], key: "o" }}
-          onAction={() => open("https://builtbybit.com/account/alerts")}
-        />
-
         {enrichedAlerts.map((alert, index) => (
           <MenuBarExtra.Item
             key={index}
@@ -123,11 +131,19 @@ export default function Command() {
             subtitle={formatRelativeDate(alert.alert_date)}
           />
         ))}
+        {unreadCount > 0 && (
+          <MenuBarExtra.Item
+            title="Mark All as Read"
+            icon={Icon.CheckCircle}
+            onAction={handleMarkAllAsRead}
+            shortcut={{ modifiers: ["cmd"], key: "enter" }}
+          />
+        )}
         <MenuBarExtra.Item
-          title="Mark All as Read"
-          icon={Icon.CheckCircle}
-          onAction={handleMarkAllAsRead}
-          shortcut={{ modifiers: ["cmd"], key: "enter" }}
+          title="View All Alerts"
+          shortcut={{ modifiers: ["cmd"], key: "o" }}
+          onAction={() => open("https://builtbybit.com/account/alerts")}
+          icon={Icon.Link}
         />
       </MenuBarExtra.Section>
       <MenuBarExtra.Section>
@@ -144,8 +160,9 @@ export default function Command() {
             await UserUtils.clearCache();
             await showToast(Toast.Style.Success, "User cache cleared");
           }}
-          shortcut={{ modifiers: ["cmd", "shift"], key: "x" }}
+          shortcut={{ modifiers: ["cmd", "shift"], key: "delete" }}
         />
+        <MenuBarExtra.Item title="Copy Debug Information" icon={Icon.Bug} onAction={handleDebug} />
       </MenuBarExtra.Section>
     </MenuBarExtra>
   );

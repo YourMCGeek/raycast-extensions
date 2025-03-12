@@ -1,6 +1,7 @@
 import { Member } from "../types/member";
 import apiClient, { CACHE_NAMESPACE, CACHE_TTL, CacheWithTTL } from "./constants";
 import { showFailureToast } from "@raycast/utils";
+import Throttler from "./throttler";
 
 /**
  * Utility class to interact with the BuiltByBit API.
@@ -13,6 +14,8 @@ const userCache = new CacheWithTTL({
   namespace: CACHE_NAMESPACE.USERS,
 });
 
+const throttler = new Throttler();
+
 type FetchMethod = "username" | "userID" | "discordID";
 
 export class UserUtils {
@@ -24,9 +27,11 @@ export class UserUtils {
 
     const cachedData = await userCache.get<{ result: string; data: Member }>(cacheKey, CACHE_TTL.LONG);
     if (cachedData) {
-      console.log("Using cached data:", cachedData);
+      console.log("Using cached member data for", cachedData.data.username);
       return cachedData;
     }
+
+    await throttler.stallIfRequired(false); // Read operation
 
     let endpoint = "";
     switch (method) {
@@ -40,28 +45,57 @@ export class UserUtils {
         endpoint = `/members/discords/${identifier}`;
         break;
     }
-    const response = await apiClient.get(endpoint);
 
-    if (!response.data || !response.data.data) {
-      console.error("Invalid API response structure:", response.data);
-      await showFailureToast("Invalid API response", { title: "Error", message: response.data });
-      throw new Error("Invalid API response structure");
+    try {
+      const response = await apiClient.get(endpoint);
+
+      // Handle rate limiting
+      const retryAfter = response.headers?.["retry-after"];
+      if (retryAfter) {
+        throttler.handleRateLimitResponse(parseInt(retryAfter));
+        console.log("Rate limited, waiting for", retryAfter, "seconds");
+      }
+
+      if (!response.data || !response.data.data) {
+        console.error("Invalid API response structure:", response.data);
+        await showFailureToast("Invalid API response", { title: "Error", message: response.data });
+        throw new Error("Invalid API response structure");
+      }
+
+      const memberData = response.data;
+
+      if (!memberData.data || !memberData.data.username) {
+        console.error("Invalid member data:", memberData);
+        await showFailureToast("User not found", { title: "User not found" });
+        throw new Error("No user found");
+      }
+
+      await userCache.set(cacheKey, memberData);
+      return memberData;
+    } catch (error: unknown) {
+      // Handle rate limit errors
+      if (
+        error &&
+        typeof error === "object" &&
+        "response" in error &&
+        error.response &&
+        typeof error.response === "object" &&
+        "status" in error.response &&
+        error.response.status === 429
+      ) {
+        const retryAfter = (error.response as { headers?: { "retry-after"?: string } }).headers?.["retry-after"];
+        throttler.handleRateLimitResponse(retryAfter ? parseInt(retryAfter) : undefined);
+      }
+      throw error;
     }
-
-    const memberData = response.data;
-
-    if (!memberData.data || !memberData.data.username) {
-      console.error("Invalid member data:", memberData);
-      await showFailureToast("User not found", { title: "User not found" });
-      throw new Error("No user found");
-    }
-
-    await userCache.set(cacheKey, memberData);
-    return memberData;
   }
 
   public static async idToUsername(userId: number | string): Promise<string> {
     try {
+      if (userId.toString() === "0") {
+        return "Guest User";
+      }
+
       const memberData = await this.fetchUserData(userId.toString(), "userID");
 
       if (!memberData || !memberData.data) {

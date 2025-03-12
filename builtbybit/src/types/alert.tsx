@@ -16,6 +16,8 @@ export enum AlertType {
   REACTION = "reaction",
   REPLY = "insert",
   TICKET_MOVED = "nf_tickets_moved",
+  MENTION = "mention",
+  EDIT = "edit",
 }
 
 export enum ContentType {
@@ -23,6 +25,7 @@ export enum ContentType {
   TICKET = "nf_tickets_message",
   THREAD = "post",
   REPORT = "report_comment",
+  WIKI = "ewr_carta_page",
 }
 
 export const ContentTypeURLMap: { [key in ContentType]: string } = {
@@ -30,6 +33,7 @@ export const ContentTypeURLMap: { [key in ContentType]: string } = {
   [ContentType.TICKET]: "https://builtbybit.com/tickets/messages",
   [ContentType.THREAD]: "https://builtbybit.com/posts",
   [ContentType.REPORT]: "https://builtbybit.com/reports/comment",
+  [ContentType.WIKI]: "https://builtbybit.com/wiki",
 };
 
 export const ContentTypeNames: { [key in ContentType]: string } = {
@@ -37,4 +41,5 @@ export const ContentTypeNames: { [key in ContentType]: string } = {
   [ContentType.TICKET]: "ticket",
   [ContentType.THREAD]: "thread",
   [ContentType.REPORT]: "report",
+  [ContentType.WIKI]: "wiki",
 };

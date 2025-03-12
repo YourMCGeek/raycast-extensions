@@ -1,4 +1,14 @@
-import { Action, ActionPanel, Detail, getPreferenceValues, Icon, LaunchProps, PreferenceValues } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  Detail,
+  getPreferenceValues,
+  Icon,
+  launchCommand,
+  LaunchProps,
+  LaunchType,
+  PreferenceValues,
+} from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import { API_BASE_URL } from "./utils/constants";
 
@@ -56,7 +66,7 @@ export default function Command(props: LaunchProps<{ arguments: Arguments.Search
     return (
       <Detail
         navigationTitle={`${member.username}`}
-        markdown={`![${member.username}](${member.avatar_url})`}
+        markdown={handleAvatar(member)}
         metadata={
           <Detail.Metadata>
             <Detail.Metadata.Label title="Username" text={member.username} />
@@ -84,10 +94,16 @@ export default function Command(props: LaunchProps<{ arguments: Arguments.Search
           <ActionPanel title="BuiltByBit">
             <Action.OpenInBrowser url={`https://www.builtbybit.com/members/${member.member_id}`} />
             {member.resource_count > 0 ? (
-              <Action.OpenInBrowser
+              <Action
                 title="View Resources"
-                icon={Icon.Cog}
-                url={`https://www.builtbybit.com/creators/${member.member_id}`}
+                // FIX ME
+                onAction={() =>
+                  launchCommand({
+                    name: "get-resources",
+                    type: LaunchType.UserInitiated,
+                    context: { authorId: member.member_id },
+                  })
+                }
               />
             ) : null}
             <Action.CopyToClipboard
@@ -123,7 +139,16 @@ export default function Command(props: LaunchProps<{ arguments: Arguments.Search
       />
     );
   } catch (error) {
-    return <Detail markdown={`# Error\n${error}`} />;
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+    return <Detail markdown={`# Error\n${errorMessage}`} />;
+  }
+}
+
+function handleAvatar(member: MemberSearchResult) {
+  if (member.avatar_url.endsWith("?0")) {
+    return `![${member.username}](../assets/bbb-icon.png?raycast-width=196&raycast-height=196) \n### Default Avatar`;
+  } else {
+    return `![${member.username}](${member.avatar_url})`;
   }
 }
 
@@ -210,37 +235,7 @@ function handleRoles(member: MemberSearchResult) {
 
 async function parseFetchResponse(response: Response) {
   try {
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || response.statusText);
-    }
-
-    const json = (await response.json()) as
-      | {
-          result: string;
-          data: {
-            member_id: number;
-            username: string;
-            join_date: number;
-            last_activity_date?: number;
-            banned: boolean;
-            suspended: boolean;
-            restricted: boolean;
-            disabled: boolean;
-            premium: boolean;
-            supreme: boolean;
-            ultimate: boolean;
-            discord_id?: number;
-            avatar_url: string;
-            post_count: number;
-            resource_count: number;
-            purchase_count: number;
-            feedback_positive: number;
-            feedback_neutral: number;
-            feedback_negative: number;
-          };
-        }
-      | { error: { code: string; message: string } };
+    const json = await response.json();
 
     if (!response.ok || "error" in json) {
       throw new Error("error" in json ? json.error.message : response.statusText);
@@ -269,8 +264,10 @@ async function parseFetchResponse(response: Response) {
       },
     ] as MemberSearchResult[];
   } catch (error) {
-    console.error("Parsing error:", error);
-    throw error;
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("An unknown error occurred");
   }
 }
 
