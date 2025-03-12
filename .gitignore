@@ -4,6 +4,9 @@ developer-docs/
 # Ignore extensions directory
 extensions/
 
+# Ignore forks directory
+forks/
+
 # Ignore node_modules directory inside any folder
 **/node_modules/
 
