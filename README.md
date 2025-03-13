@@ -17,21 +17,6 @@ Here you'll find a collection of extensions I've created for [Raycast](https://w
 
 To install any of the extensions, simply search for them in the Raycast Store. You can visit my [Raycast Profile](https://www.raycast.com/YourMCGeek) to see all of my published extensions.
 
-### Manual Installation
-
-If you prefer to install the extensions manually, follow these steps:
-
-1. Clone the repository:
-
-    ```bash
-    git clone https://github.com/YourMCGeek/raycast-extensions.git
-    ```
-
-2. Open Raycast and use the `Import Extension` command.
-3. Navigate to the cloned repository and select the extension you want to import.
-
-That's it! The extension should now be available in Raycast.
-
 ## Usage
 
 Each extension has its own set of instructions. Check out the README file in each extension's directory for detailed usage information.
