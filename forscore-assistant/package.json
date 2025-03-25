@@ -1,0 +1,80 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "forscore-assistant",
+  "title": "forScore Assistant",
+  "description": "Update PDFs with forScore specific properties before importing",
+  "icon": "extension-icon.png",
+  "author": "YourMCGeek",
+  "categories": [
+    "Other"
+  ],
+  "license": "MIT",
+  "preferences": [
+    {
+      "name": "saveMode",
+      "title": "Save Mode",
+      "type": "dropdown",
+      "required": true,
+      "description": "How to save the updated PDF",
+      "default": "override",
+      "data": [
+        {
+          "title": "Override Original File",
+          "value": "override"
+        },
+        {
+          "title": "Save to a New File",
+          "value": "save-new"
+        }
+      ]
+    },
+    {
+      "name": "savePath",
+      "title": "Save Path",
+      "type": "directory",
+      "required": false,
+      "description": "The path to save the updated PDF",
+      "default": "~/Desktop/forScore PDFs"
+    },
+    {
+      "name": "newFileSuffix",
+      "title": "New File Suffix",
+      "type": "textfield",
+      "required": false,
+      "description": "The suffix to add to the new file",
+      "default": "_updated"
+    }
+  ],
+  "commands": [
+    {
+      "name": "update-properties",
+      "title": "Update Properties",
+      "subtitle": "forScore",
+      "description": "Update Metadata properties for the selected PDF",
+      "mode": "no-view"
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^1.93.2",
+    "@raycast/utils": "^1.17.0",
+    "fs-extra": "^11.3.0",
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^1.0.11",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "20.8.10",
+    "@types/react": "18.3.3",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.4.5"
+  },
+  "scripts": {
+    "build": "ray build",
+    "dev": "ray develop",
+    "fix-lint": "ray lint --fix",
+    "lint": "ray lint",
+    "prepublishOnly": "echo \"\\n\\nIt seems like you are trying to publish the Raycast extension to npm.\\n\\nIf you did intend to publish it to npm, remove the \\`prepublishOnly\\` script and rerun \\`npm publish\\` again.\\nIf you wanted to publish it to the Raycast Store instead, use \\`npm run publish\\` instead.\\n\\n\" && exit 1",
+    "publish": "npx @raycast/api@latest publish"
+  }
+}
