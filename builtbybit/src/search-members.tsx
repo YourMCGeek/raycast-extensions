@@ -113,7 +113,6 @@ export default function Command(props: LaunchProps<{ arguments: Arguments.Search
             />
             {member.discord_id ? (
               <Action.CopyToClipboard
-                // eslint-disable-next-line @raycast/prefer-title-case
                 title="Copy Discord ID"
                 icon={Icon.Hashtag}
                 content={member.discord_id}
