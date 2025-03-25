@@ -26,7 +26,6 @@ export function useAlerts(refreshKey: number) {
   const shouldFetchRef = useRef(refreshKey !== 0);
 
   const fetchAlerts = useCallback(async () => {
-
     // Ensure we're still mounted and not rate limited
     if (!mountedRef.current || throttler.isRateLimited(false) || !shouldFetchRef.current) {
       console.warn("Fetch skipped");
